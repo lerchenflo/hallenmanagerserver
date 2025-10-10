@@ -3,6 +3,7 @@ package com.lerchenflo.hallenmanager_server
 import org.bson.types.ObjectId
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import org.springframework.context.annotation.Bean
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.web.bind.annotation.GetMapping
