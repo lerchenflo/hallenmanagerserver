@@ -45,7 +45,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://admin:password@mongodb:27017/mydb?authSource=admin
+      SPRING_DATA_MONGODB_URI: mongodb://admin:password@mongodb:27017/db?authSource=admin
     networks:
       - spring-mongo-network
     volumes:
