@@ -1,4 +1,4 @@
-package com.lerchenflo.hallenmanager_server.core
+package com.lerchenflo.hallenmanager_server.database
 
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
@@ -9,10 +9,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration
 
+/*
+
 @Configuration
 class MongoConfig : AbstractMongoClientConfiguration() {
 
-    @Value($$"${spring.data.mongodb.uri}")
+    @Value("\${spring.data.mongodb.uri}")
     private lateinit var mongoUri: String
 
     @Value("\${spring.data.mongodb.database}")
@@ -22,6 +24,7 @@ class MongoConfig : AbstractMongoClientConfiguration() {
 
     @Bean
     override fun mongoClient(): MongoClient {
+        println("DEBUG: Using MongoDB URI: $mongoUri") // Add this to verify
         val connectionString = ConnectionString(mongoUri)
         val mongoClientSettings = MongoClientSettings.builder()
             .applyConnectionString(connectionString)
@@ -30,3 +33,5 @@ class MongoConfig : AbstractMongoClientConfiguration() {
         return MongoClients.create(mongoClientSettings)
     }
 }
+
+ */
