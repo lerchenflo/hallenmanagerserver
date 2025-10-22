@@ -2,17 +2,15 @@
 
 package com.lerchenflo.hallenmanager_server.controllers
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lerchenflo.hallenmanager_server.database.model.Area
+import com.lerchenflo.hallenmanager_server.database.model.AreaAsSyncObject
+import com.lerchenflo.hallenmanager_server.database.model.asSyncObject
 import com.lerchenflo.hallenmanager_server.database.repository.AreaRepository
+import com.lerchenflo.hallenmanager_server.util.computeDiffs
 import org.bson.types.ObjectId
 import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -36,7 +34,7 @@ class AreaController(
 
 
     @PostMapping
-    fun postmapping(
+    fun upsertArea(
         @RequestParam("username") userName: String,
         @RequestBody body: AreaRequest
     ) : Area {
@@ -50,7 +48,7 @@ class AreaController(
 
             if (existingEntry != null) {
                 area = Area(
-                    id = existingEntry.id,
+                    serverId = existingEntry.serverId,
                     name = body.name,
                     description = body.description,
                     createdAt = existingEntry.createdAt,
@@ -62,7 +60,7 @@ class AreaController(
             }
         }else {
             area = Area(
-                id = ObjectId.get(),
+                serverId = ObjectId.get(),
                 name = body.name,
                 description = body.description,
                 createdAt = currentInstant,
@@ -81,4 +79,33 @@ class AreaController(
         return areaRepository.findAll()
     }
 
+
+
+    data class IdTimeStamp(
+        val id: ObjectId,
+        val timeStamp: Instant
+    )
+
+    @PostMapping
+    @RequestMapping("/sync")
+    fun areaSync(
+        @RequestBody clientList: List<IdTimeStamp>
+    ) : List<AreaAsSyncObject> {
+        val localList = areaRepository.findAll()
+            .map { area ->
+                IdTimeStamp(
+                    id = area.serverId,
+                    timeStamp = area.lastchangedAt
+                )
+        }
+
+        val resultTimestamps = computeDiffs(clientList, localList).getAll()
+        val changedAreaids = resultTimestamps.map {
+            it.id
+        }
+
+        return areaRepository.findAllById(changedAreaids).map { area ->
+            area.asSyncObject()
+        }
+    }
 }

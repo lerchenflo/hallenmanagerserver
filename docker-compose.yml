@@ -2,6 +2,7 @@ services:
   mongodb:
     image: mongo:latest
     container_name: mongodb
+    #restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
@@ -21,6 +22,7 @@ services:
   mongo-express:
     image: mongo-express:latest
     container_name: mongo-express
+    #restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
@@ -38,7 +40,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: spring-app
-    restart: unless-stopped  # Auto-restart on failure
+    #restart: unless-stopped
     depends_on:
       mongodb:
         condition: service_healthy  # Wait for MongoDB to be healthy
