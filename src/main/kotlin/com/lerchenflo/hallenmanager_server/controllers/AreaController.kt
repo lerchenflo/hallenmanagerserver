@@ -4,17 +4,23 @@ package com.lerchenflo.hallenmanager_server.controllers
 
 import com.lerchenflo.hallenmanager_server.database.model.Area
 import com.lerchenflo.hallenmanager_server.database.model.AreaAsSyncObject
+import com.lerchenflo.hallenmanager_server.database.model.IdTimeStamp
 import com.lerchenflo.hallenmanager_server.database.model.asSyncObject
 import com.lerchenflo.hallenmanager_server.database.repository.AreaRepository
 import com.lerchenflo.hallenmanager_server.util.computeDiffs
 import org.bson.types.ObjectId
 import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
+import kotlin.collections.map
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+
 
 @RestController()
 @RequestMapping("/areas")
@@ -23,44 +29,53 @@ class AreaController(
 ) {
 
     data class AreaRequest(
-        val areaid: String?,
+        val areaid: String,
         val name: String,
         val description: String,
-    ){
-        fun getId(): String{
-            return areaid?.toLong()?.toHexString() ?: ""
-        }
-    }
+    )
 
+    data class AreaResponse(
+        val id: String,
+        val name: String,
+        val description: String,
+        val createdAt: String,
+        var lastchangedAt: String,
+        var lastchangedBy: String,
+    )
 
     @PostMapping
     fun upsertArea(
         @RequestParam("username") userName: String,
         @RequestBody body: AreaRequest
-    ) : Area {
+    ) : AreaResponse {
 
-        val currentInstant = Clock.System.now()
+        val currentInstant = Clock.System.now().toEpochMilliseconds().toString()
         var area: Area?
 
-        if (body.areaid != null) {
+        println("Requestbody: $body")
+
+        if (body.areaid.isNotEmpty()) {
             //Update existing entry
-            val existingEntry = areaRepository.findById(ObjectId(body.getId())).orElse(null)
+            val existingEntry = areaRepository.findById(ObjectId(body.areaid)).orElse(null)
+
+            println("Existingitem: $existingEntry")
 
             if (existingEntry != null) {
                 area = Area(
-                    serverId = existingEntry.serverId,
+                    id = existingEntry.id,
                     name = body.name,
                     description = body.description,
                     createdAt = existingEntry.createdAt,
                     lastchangedAt = currentInstant,
                     lastchangedBy = userName
                 )
-            }else {
+            } else {
+                println("An bad request")
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST)
             }
         }else {
             area = Area(
-                serverId = ObjectId.get(),
+                id = ObjectId.get(),
                 name = body.name,
                 description = body.description,
                 createdAt = currentInstant,
@@ -69,8 +84,15 @@ class AreaController(
             )
         }
 
-        return areaRepository.save(
-            area
+        val upsertedArea = areaRepository.save(area)
+
+        return AreaResponse(
+            id = upsertedArea.id.toString(),
+            name = upsertedArea.name,
+            description = upsertedArea.description,
+            createdAt = upsertedArea.createdAt,
+            lastchangedAt = upsertedArea.lastchangedAt,
+            lastchangedBy = upsertedArea.lastchangedBy,
         )
     }
 
@@ -81,28 +103,26 @@ class AreaController(
 
 
 
-    data class IdTimeStamp(
-        val id: ObjectId,
-        val timeStamp: Instant
-    )
 
-    @PostMapping
-    @RequestMapping("/sync")
+
+    @PostMapping("/sync")
     fun areaSync(
         @RequestBody clientList: List<IdTimeStamp>
     ) : List<AreaAsSyncObject> {
         val localList = areaRepository.findAll()
             .map { area ->
                 IdTimeStamp(
-                    id = area.serverId,
+                    id = area.id,
                     timeStamp = area.lastchangedAt
                 )
         }
 
-        val resultTimestamps = computeDiffs(clientList, localList).getAll()
+        val resultTimestamps: List<IdTimeStamp> = computeDiffs(clientList, localList).getAll()
         val changedAreaids = resultTimestamps.map {
             it.id
         }
+
+        println("Changed area ids: $changedAreaids")
 
         return areaRepository.findAllById(changedAreaids).map { area ->
             area.asSyncObject()

@@ -2,7 +2,7 @@
 
 package com.lerchenflo.hallenmanager_server.util
 
-import com.lerchenflo.hallenmanager_server.controllers.AreaController.IdTimeStamp
+import com.lerchenflo.hallenmanager_server.database.model.IdTimeStamp
 import kotlin.time.ExperimentalTime
 
 data class SyncResult(

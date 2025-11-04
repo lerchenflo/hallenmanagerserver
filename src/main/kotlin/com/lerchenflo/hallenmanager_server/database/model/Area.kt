@@ -10,26 +10,26 @@ import kotlin.time.Instant
 
 @Document(collection = "areas")
 data class Area(
-    @Id val serverId: ObjectId = ObjectId.get(),
+    @Id val id: ObjectId = ObjectId.get(),
     val name: String,
     val description: String,
-    val createdAt: Instant,
-    var lastchangedAt: Instant,
+    val createdAt: String,
+    var lastchangedAt: String,
     var lastchangedBy: String,
 )
 
 data class AreaAsSyncObject(
-    val serverId: String,
+    val id: String,
     val name: String,
     val description: String,
-    val createdAt: Instant,
-    var lastchangedAt: Instant,
+    val createdAt: String,
+    var lastchangedAt: String,
     var lastchangedBy: String,
 )
 
 fun Area.asSyncObject() : AreaAsSyncObject {
     return AreaAsSyncObject(
-        serverId = serverId.toHexString(),
+        id = id.toHexString(),
         name = name,
         description = description,
         createdAt = createdAt,
