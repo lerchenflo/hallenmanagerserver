@@ -7,4 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository
 
 interface CornerPointRepository: MongoRepository<CornerPoint, ObjectId> {
 
+    fun findAllByItemIdIn(itemIds: List<String>): List<CornerPoint>
+
 }

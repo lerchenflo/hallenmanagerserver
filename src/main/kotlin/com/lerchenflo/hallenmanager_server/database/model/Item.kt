@@ -10,7 +10,7 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 data class Item(
-    val itemid: ObjectId = ObjectId.get(),
+    @Id val itemid: ObjectId = ObjectId.get(),
     val areaId: String,
     val title: String,
     val description: String,

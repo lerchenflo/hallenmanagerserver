@@ -37,6 +37,12 @@ class ItemController(
 
     data class ItemResponse(
         val itemid: String,
+        val areaId: String,
+        val title: String,
+        val description: String,
+        val color: Long?,
+        val layers: List<String>,
+        val onArea: Boolean,
         var createdAt: String,
         var lastchangedAt: String,
         var lastchangedBy: String,
@@ -74,6 +80,7 @@ class ItemController(
 
                 corners = body.cornerPoints
             }else {
+                println("Saved item not found: ${body.itemid}")
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST)
             }
         }else {
@@ -109,7 +116,13 @@ class ItemController(
             lastchangedBy = upsertedItem.lastchangedBy,
             cornerPoints = upsertedCorners.map { cornerPoint ->
                 cornerPoint.toCornerPointAsSyncObject()
-            }
+            },
+            areaId = upsertedItem.areaId,
+            title = upsertedItem.title,
+            description = upsertedItem.description,
+            color = upsertedItem.color,
+            layers = upsertedItem.layers,
+            onArea = upsertedItem.onArea,
         )
     }
 
@@ -121,7 +134,7 @@ class ItemController(
     @PostMapping("/sync")
     fun itemSync(
         @RequestBody clientList: List<IdTimeStamp>
-    ) : List<ItemAsSyncObject> {
+    ) : List<ItemResponse> {
         val localList = itemRepository.findAll()
             .map { item ->
                 IdTimeStamp(
@@ -135,8 +148,25 @@ class ItemController(
             idTimeStamp.id
         }
 
+        val items = itemRepository.findAllById(changedItemids)
+        val cornerpoints = cornerPointRepository.findAllByItemIdIn(changedItemids.map { it.toHexString() })
+
         return itemRepository.findAllById(changedItemids).map { item ->
-            item.asSyncObject()
+            ItemResponse(
+                itemid = item.itemid.toHexString(),
+                areaId = item.areaId,
+                title = item.title,
+                description = item.description,
+                color = item.color,
+                layers = item.layers,
+                onArea = item.onArea,
+                createdAt = item.createdAt,
+                lastchangedAt = item.lastchangedAt,
+                lastchangedBy = item.lastchangedBy,
+                cornerPoints = cornerpoints.map { cp ->
+                    cp.toCornerPointAsSyncObject()
+                }
+            )
         }
     }
 }
