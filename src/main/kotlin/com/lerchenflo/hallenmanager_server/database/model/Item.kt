@@ -4,10 +4,12 @@ package com.lerchenflo.hallenmanager_server.database.model
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+@Document(collection = "items")
 @OptIn(ExperimentalTime::class)
 data class Item(
     @Id val itemid: ObjectId = ObjectId.get(),
