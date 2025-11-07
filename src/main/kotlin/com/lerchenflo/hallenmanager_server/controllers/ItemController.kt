@@ -131,27 +131,38 @@ class ItemController(
         return itemRepository.findAll()
     }
 
+    data class ItemSyncResponse(
+        val updated: List<ItemResponse>,
+        val deleted: List<String>
+    )
+
     @PostMapping("/sync")
     fun itemSync(
         @RequestBody clientList: List<IdTimeStamp>
-    ) : List<ItemResponse> {
+    ): ItemSyncResponse {
         val localList = itemRepository.findAll()
             .map { item ->
                 IdTimeStamp(
                     id = item.itemid,
                     timeStamp = item.lastchangedAt
                 )
-        }
+            }
 
-        val resultTimestamps : List<IdTimeStamp> = computeDiffs(clientList, localList).getAll()
+        val resultTimestamps: List<IdTimeStamp> = computeDiffs(clientList, localList).getAll()
         val changedItemids = resultTimestamps.map { idTimeStamp ->
             idTimeStamp.id
         }
 
-        val items = itemRepository.findAllById(changedItemids)
+        // Items client has but server doesn't = deleted
+        val deletedIds = clientList
+            .filter { clientItem ->
+                localList.none { it.id == clientItem.id }
+            }
+            .map { it.id.toString() }
+
         val cornerpoints = cornerPointRepository.findAllByItemIdIn(changedItemids.map { it.toHexString() })
 
-        return itemRepository.findAllById(changedItemids).map { item ->
+        val updated = itemRepository.findAllById(changedItemids).map { item ->
             ItemResponse(
                 itemid = item.itemid.toHexString(),
                 areaId = item.areaId,
@@ -163,10 +174,14 @@ class ItemController(
                 createdAt = item.createdAt,
                 lastchangedAt = item.lastchangedAt,
                 lastchangedBy = item.lastchangedBy,
-                cornerPoints = cornerpoints.map { cp ->
-                    cp.toCornerPointAsSyncObject()
-                }
+                cornerPoints = cornerpoints.filter { it.itemId == item.itemid.toHexString() }
+                    .map { cp -> cp.toCornerPointAsSyncObject() }
             )
         }
+
+        return ItemSyncResponse(
+            updated = updated,
+            deleted = deletedIds
+        )
     }
 }

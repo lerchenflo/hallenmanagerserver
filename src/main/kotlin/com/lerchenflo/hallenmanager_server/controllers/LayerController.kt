@@ -49,6 +49,11 @@ class LayerController(
         var lastchangedBy: String,
     )
 
+    data class LayerSyncResponse(
+        val updated: List<LayerResponse>,
+        val deleted: List<String> // IDs that were deleted
+    )
+
     @PostMapping
     fun upsertLayer(
         @RequestParam("username") userName: String,
@@ -120,23 +125,29 @@ class LayerController(
     @PostMapping("/sync")
     fun layerSync(
         @RequestBody clientList: List<IdTimeStamp>
-    ) : List<LayerResponse> {
+    ): LayerSyncResponse {
         val localList = layerRepository.findAll()
             .map { layer ->
                 IdTimeStamp(
                     id = layer.layerid,
                     timeStamp = layer.lastchangedAt
                 )
-        }
+            }
 
         val resultTimestamps: List<IdTimeStamp> = computeDiffs(clientList, localList).getAll()
-        val changedLayerids = resultTimestamps.map {
-            it.id
-        }
+        val changedLayerids = resultTimestamps.map { it.id }
+
+        // Items client has but server doesn't = deleted
+        val deletedIds = clientList
+            .filter { clientItem ->
+                localList.none { it.id == clientItem.id }
+            }
+            .map { it.id.toString() }
 
         println("Changed Layer ids: $changedLayerids")
+        println("Deleted Layer ids: $deletedIds")
 
-        return layerRepository.findAllById(changedLayerids).map { layer ->
+        val updated = layerRepository.findAllById(changedLayerids).map { layer ->
             LayerResponse(
                 layerid = layer.layerid.toString(),
                 name = layer.name,
@@ -148,5 +159,10 @@ class LayerController(
                 lastchangedBy = layer.lastchangedBy,
             )
         }
+
+        return LayerSyncResponse(
+            updated = updated,
+            deleted = deletedIds
+        )
     }
 }

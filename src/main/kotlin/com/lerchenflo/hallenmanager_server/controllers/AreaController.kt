@@ -105,27 +105,40 @@ class AreaController(
 
 
 
+    data class AreaSyncResponse(
+        val updated: List<AreaAsSyncObject>,
+        val deleted: List<String> // IDs that were deleted
+    )
+
     @PostMapping("/sync")
     fun areaSync(
         @RequestBody clientList: List<IdTimeStamp>
-    ) : List<AreaAsSyncObject> {
+    ): AreaSyncResponse {
         val localList = areaRepository.findAll()
             .map { area ->
                 IdTimeStamp(
                     id = area.id,
                     timeStamp = area.lastchangedAt
                 )
-        }
+            }
 
-        val resultTimestamps: List<IdTimeStamp> = computeDiffs(clientList, localList).getAll()
-        val changedAreaids = resultTimestamps.map {
-            it.id
-        }
+        val result = computeDiffs(clientList, localList)
 
-        println("Changed area ids: $changedAreaids")
+        // Items client has but server doesn't = deleted
+        val deletedIds = clientList
+            .filter { clientItem ->
+                localList.none { it.id == clientItem.id }
+            }
+            .map { it.id.toString() }
 
-        return areaRepository.findAllById(changedAreaids).map { area ->
-            area.asSyncObject()
-        }
+        // Items that changed or are new
+        val changedAreaIds = result.getAll().map { it.id }
+        val updated = areaRepository.findAllById(changedAreaIds)
+            .map { it.asSyncObject() }
+
+        return AreaSyncResponse(
+            updated = updated,
+            deleted = deletedIds
+        )
     }
 }
