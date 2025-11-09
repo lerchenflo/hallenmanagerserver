@@ -33,6 +33,22 @@ class MainController(
         return "server found"
     }
 
+    @GetMapping
+    @RequestMapping("/latestchange")
+    fun getLatestTimeStamp(): String? {
+        val latestArea = areaRepository.findAllByOrderByLastchangedAtDesc().firstOrNull()
+        val latestItem = itemRepository.findAllByOrderByLastchangedAtDesc().firstOrNull()
+        val latestLayer = layerRepository.findAllByOrderByLastchangedAtDesc().firstOrNull()
+
+        val timestamps = listOfNotNull(
+            latestArea?.lastchangedAt?.toLongOrNull(),
+            latestItem?.lastchangedAt?.toLongOrNull(),
+            latestLayer?.lastchangedAt?.toLongOrNull(),
+        )
+
+        return timestamps.maxOrNull()?.toString()
+    }
+
 
     @EventListener(ApplicationReadyEvent::class)
     fun createDefaultArea() {

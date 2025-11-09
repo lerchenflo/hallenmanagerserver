@@ -1,11 +1,13 @@
 package com.lerchenflo.hallenmanager_server.database.repository
 
+import com.lerchenflo.hallenmanager_server.database.model.Area
 import com.lerchenflo.hallenmanager_server.database.model.CornerPoint
 import com.lerchenflo.hallenmanager_server.database.model.Item
 import org.bson.types.ObjectId
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface ItemRepository: MongoRepository<Item, ObjectId> {
+    fun findAllByOrderByLastchangedAtDesc(): List<Item>
 
 
 }
